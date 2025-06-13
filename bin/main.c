@@ -52,8 +52,7 @@ void ProcessInput(Game *game) {
 void CalculateBrickDimensions(Game *game) {
   float available_width = WIDTH - BRICKS_MARGIN * 2;
   float horizontal_padding = (game->BRICKS_IN_ROW - 1) * BRICKS_PADDING;
-  game->brick_width =
-      (available_width - horizontal_padding) / game->BRICKS_IN_ROW;
+  game->brick_width = (available_width - horizontal_padding) / game->BRICKS_IN_ROW;
 
   float available_height = BRICKS_AREA_HEIGHT;
   float vertical_padding = (ROWS_NUMBER - 1) * BRICKS_PADDING;
@@ -89,8 +88,7 @@ int main(void) {
       .player = {.movement_speed = 200.f,
                  .width = 80,
                  .height = 10,
-                 .position = {(float)WIDTH / 2,
-                              (float)HEIGHT - (float)HEIGHT / 5}},
+                 .position = {(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 5}},
       .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
   };
 
@@ -126,13 +124,14 @@ int main(void) {
       for (int j = 0; j < ROWS_NUMBER; j++) {
         Vector2 *position = &game.bricks[i + j * game.BRICKS_IN_ROW].position;
 
-        DrawRectangle(position->x, position->y, game.brick_width,
-                      game.brick_height, BLACK);
+        int color_index = j % ROWS_NUMBER;
+
+        DrawRectangle(position->x, position->y, game.brick_width, game.brick_height,
+                      game.rows_colors[color_index]);
       }
     }
 
-    DrawRectangle(player->position.x, player->position.y, player->width,
-                  player->height, BLACK);
+    DrawRectangle(player->position.x, player->position.y, player->width, player->height, BLACK);
 
     EndDrawing();
   }
