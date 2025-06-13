@@ -19,7 +19,9 @@
 typedef struct Ball {
   Color color;
   float radius;
+  float speed;
   Vector2 position;
+  Vector2 velocity;
 } Ball;
 
 typedef struct Brick {
@@ -104,15 +106,32 @@ void DrawBricks(Game *game) {
 
       int color_index = j % ROWS_NUMBER;
 
-      DrawRectangle(position->x, position->y, game->brick_width, game->brick_height,
-                    game->rows_colors[color_index]);
+      DrawRectangleV(*position, (Vector2){game->brick_width, game->brick_height},
+                     game->rows_colors[color_index]);
     }
   }
 }
 
 void DrawBall(Game *game) {
   Vector2 *position = &game->ball.position;
-  DrawCircle(position->x, position->y, game->ball.radius, game->ball.color);
+  DrawCircleV(*position, game->ball.radius, game->ball.color);
+}
+
+void MoveBall(Game *game) {
+  Ball *ball = &game->ball;
+  Vector2 *position = &game->ball.position;
+  Vector2 *velocity = &game->ball.velocity;
+
+  position->x += velocity->x * game->ball.speed * GetFrameTime();
+  position->y += velocity->y * game->ball.speed * GetFrameTime();
+
+  if (ball->position.x - ball->radius <= 0 || ball->position.x + ball->radius >= WIDTH) {
+    ball->velocity.x *= -1;
+  }
+
+  if (ball->position.y + ball->radius <= 0) {
+    ball->velocity.y *= -1;
+  }
 }
 
 int main(void) {
@@ -120,14 +139,17 @@ int main(void) {
       .BRICKS_IN_ROW = 8,
       .rows_colors = {RED, RED, BROWN, BROWN, GREEN, GREEN, YELLOW, YELLOW},
       .background_color = BLACK,
-      .player = {.movement_speed = 200.f,
+      .player = {.movement_speed = 400.f,
                  .width = 80,
                  .height = 10,
                  .color = DARKBLUE,
-                 .position = {(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 5}},
+                 .position = {(float)WIDTH / 2 - (game.player.width / 2),
+                              (float)HEIGHT - (float)HEIGHT / 5}},
       .ball = {.color = WHITE,
                .radius = 8.f,
-               .position = {(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 3}},
+               .speed = 300.f,
+               .position = {(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 2},
+               .velocity = {0.0f, 1.0f}},
       .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
   };
 
@@ -146,9 +168,13 @@ int main(void) {
 
   while (!WindowShouldClose()) {
     ClampPlayerMovement(&game.player);
+    MoveBall(&game);
+
+    if (game.ball.position.y - game.ball.radius * 2 >= HEIGHT) {
+      // TODO: DEATH (-1 LIFE)
+    }
 
     ProcessInput(&game);
-
     /*
         if (CheckCollisionRecs(
                 (Rectangle){game.player.position.x, game.player.position.y,
@@ -160,9 +186,7 @@ int main(void) {
     ClearBackground(game.background_color);
 
     DrawBricks(&game);
-
-    DrawRectangle(player->position.x, player->position.y, player->width, player->height,
-                  player->color);
+    DrawRectangleV(player->position, (Vector2){player->width, player->height}, player->color);
     DrawBall(&game);
 
 #ifdef DEBUGGING
