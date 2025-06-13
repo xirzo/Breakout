@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <threads.h>
 
+/*
+ Remove #define DEBUGGING and #define DEBUG_LINE_LENGTH 10.f
+*/
+#define DEBUGGING
+#define DEBUG_LINE_LENGTH 50.f
+
 #define WIDTH 1280
 #define HEIGHT 720
 
@@ -9,6 +15,12 @@
 #define BRICKS_PADDING 15.f
 #define BRICKS_MARGIN 10.f
 #define BRICKS_AREA_HEIGHT 300.f
+
+typedef struct Ball {
+  Color color;
+  float radius;
+  Vector2 position;
+} Ball;
 
 typedef struct Brick {
   Vector2 position;
@@ -32,6 +44,7 @@ typedef struct Game {
 
   const Color rows_colors[ROWS_NUMBER];
   Player player;
+  Ball ball;
 
   Brick *bricks;
 } Game;
@@ -97,6 +110,11 @@ void DrawBricks(Game *game) {
   }
 }
 
+void DrawBall(Game *game) {
+  Vector2 *position = &game->ball.position;
+  DrawCircle(position->x, position->y, game->ball.radius, game->ball.color);
+}
+
 int main(void) {
   Game game = {
       .BRICKS_IN_ROW = 8,
@@ -107,6 +125,9 @@ int main(void) {
                  .height = 10,
                  .color = DARKBLUE,
                  .position = {(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 5}},
+      .ball = {.color = WHITE,
+               .radius = 8.f,
+               .position = {(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 3}},
       .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
   };
 
@@ -142,6 +163,15 @@ int main(void) {
 
     DrawRectangle(player->position.x, player->position.y, player->width, player->height,
                   player->color);
+    DrawBall(&game);
+
+#ifdef DEBUGGING
+    Vector2 *ball_pos = &game.ball.position;
+
+    DrawLine(ball_pos->x, ball_pos->y, ball_pos->x, ball_pos->y + DEBUG_LINE_LENGTH, RED);
+
+    DrawFPS(10, HEIGHT - 30.f);
+#endif
 
     EndDrawing();
   }
