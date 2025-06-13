@@ -18,6 +18,7 @@ typedef struct Player {
   float movement_speed;
   float width;
   float height;
+  Color color;
   Vector2 position;
 } Player;
 
@@ -26,6 +27,8 @@ typedef struct Game {
 
   float brick_width;
   float brick_height;
+
+  Color background_color;
 
   const Color rows_colors[ROWS_NUMBER];
   Player player;
@@ -81,13 +84,28 @@ void ClampPlayerMovement(Player *player) {
   }
 }
 
+void DrawBricks(Game *game) {
+  for (int i = 0; i < game->BRICKS_IN_ROW; i++) {
+    for (int j = 0; j < ROWS_NUMBER; j++) {
+      Vector2 *position = &game->bricks[i + j * game->BRICKS_IN_ROW].position;
+
+      int color_index = j % ROWS_NUMBER;
+
+      DrawRectangle(position->x, position->y, game->brick_width, game->brick_height,
+                    game->rows_colors[color_index]);
+    }
+  }
+}
+
 int main(void) {
   Game game = {
       .BRICKS_IN_ROW = 8,
-      .rows_colors = {RED, BROWN, GREEN, YELLOW},
+      .rows_colors = {RED, RED, BROWN, BROWN, GREEN, GREEN, YELLOW, YELLOW},
+      .background_color = BLACK,
       .player = {.movement_speed = 200.f,
                  .width = 80,
                  .height = 10,
+                 .color = DARKBLUE,
                  .position = {(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 5}},
       .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
   };
@@ -118,20 +136,12 @@ int main(void) {
     */
 
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground(game.background_color);
 
-    for (int i = 0; i < game.BRICKS_IN_ROW; i++) {
-      for (int j = 0; j < ROWS_NUMBER; j++) {
-        Vector2 *position = &game.bricks[i + j * game.BRICKS_IN_ROW].position;
+    DrawBricks(&game);
 
-        int color_index = j % ROWS_NUMBER;
-
-        DrawRectangle(position->x, position->y, game.brick_width, game.brick_height,
-                      game.rows_colors[color_index]);
-      }
-    }
-
-    DrawRectangle(player->position.x, player->position.y, player->width, player->height, BLACK);
+    DrawRectangle(player->position.x, player->position.y, player->width, player->height,
+                  player->color);
 
     EndDrawing();
   }
