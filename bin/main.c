@@ -28,6 +28,7 @@ typedef struct Ball {
   Color color;
   float radius;
   float speed;
+  b2Vec2 initial_velocity;
   b2BodyId body_id;
 } Ball;
 
@@ -81,6 +82,7 @@ void ProcessInput(Game *game) {
   if (IsKeyPressed(KEY_SPACE)) {
     b2Vec2 restart_position = (b2Vec2){(float)WIDTH / 2, HEIGHT - (float)HEIGHT / 2};
     b2Body_SetTransform(game->ball.body_id, restart_position, b2Rot_identity);
+    b2Body_SetLinearVelocity(game->ball.body_id, game->ball.initial_velocity);
   }
 #endif /* ifdef MACRO */
 
@@ -190,6 +192,7 @@ int main(void) {
                        .color = WHITE,
                        .radius = 8.f,
                        .speed = 300.f,
+                       .initial_velocity = {0.f, 100.f},
                    },
                .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
                .world_id = world_id};
@@ -230,6 +233,8 @@ int main(void) {
 
   HideCursor();
   DisableCursor();
+
+  b2Body_SetLinearVelocity(game.ball.body_id, game.ball.initial_velocity);
 
   while (!WindowShouldClose()) {
     ProcessInput(&game);
