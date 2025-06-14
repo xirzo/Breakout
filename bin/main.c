@@ -78,9 +78,10 @@ void ProcessInput(Game *game) {
   }
 
 #ifdef DEBUGGING
-  // if (IsKeyPressed(KEY_SPACE)) {
-  //   game->ball.position = (Vector2){(float)WIDTH / 2, HEIGHT - (float)HEIGHT / 2};
-  //   game->ball.velocity = (Vector2){0.3f, 1.0f}; }
+  if (IsKeyPressed(KEY_SPACE)) {
+    b2Vec2 restart_position = (b2Vec2){(float)WIDTH / 2, HEIGHT - (float)HEIGHT / 2};
+    b2Body_SetTransform(game->ball.body_id, restart_position, b2Rot_identity);
+  }
 #endif /* ifdef MACRO */
 
   b2Body_SetLinearVelocity(game->player.body_id, velocity);
