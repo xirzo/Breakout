@@ -21,13 +21,11 @@
 #define BRICKS_MARGIN 10.f
 #define BRICKS_AREA_HEIGHT 300.f
 
-#define PHYSICS_TIME_STEP 1.0f / 60.0f
 #define PHYSICS_SUBSTEP_COUNT 4
 
 typedef struct Ball {
   Color color;
   float radius;
-  float speed;
   b2Vec2 initial_velocity;
   b2BodyId body_id;
 } Ball;
@@ -191,25 +189,23 @@ int main(void) {
                    {
                        .color = WHITE,
                        .radius = 8.f,
-                       .speed = 300.f,
-                       .initial_velocity = {0.f, 100.f},
+                       .initial_velocity = {0.f, 500.f},
                    },
                .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
                .world_id = world_id};
 
-  Player *player = &game.player;
-
   b2BodyDef player_body_def = b2DefaultBodyDef();
-  player_body_def.type = b2_dynamicBody;
+  player_body_def.type = b2_kinematicBody;
   player_body_def.position =
-      (b2Vec2){(float)WIDTH / 2 - player->width / 2, (float)HEIGHT - (float)HEIGHT / 5};
+      (b2Vec2){(float)WIDTH / 2 - game.player.width / 2, (float)HEIGHT - (float)HEIGHT / 5};
   b2BodyId player_body_id = b2CreateBody(world_id, &player_body_def);
 
   game.player.body_id = player_body_id;
 
-  b2Polygon player_collider = b2MakeBox(player->width / 2, player->height / 2);
+  b2Polygon player_collider = b2MakeBox(game.player.width / 2, game.player.height / 2);
   b2ShapeDef player_shape_def = b2DefaultShapeDef();
   player_shape_def.material.friction = 0.3f;
+  player_shape_def.material.restitution = 1.2f;
   b2CreatePolygonShape(game.player.body_id, &player_shape_def, &player_collider);
 
   b2BodyDef ball_body_def = b2DefaultBodyDef();
@@ -219,10 +215,13 @@ int main(void) {
 
   game.ball.body_id = ball_body_id;
 
-  b2Polygon ball_collider = b2MakeBox(game.ball.radius, game.ball.radius);
+  b2Circle ball_collider = (b2Circle){{0, 0}, game.ball.radius};
   b2ShapeDef ball_shape_def = b2DefaultShapeDef();
-  ball_shape_def.material.friction = 0.3f;
-  b2CreatePolygonShape(game.ball.body_id, &ball_shape_def, &ball_collider);
+  ball_body_def.linearDamping = 0.0f;
+  ball_body_def.angularDamping = 0.0f;
+  ball_shape_def.material.restitution = 1.0f;
+  ball_shape_def.material.friction = 0.0f;
+  b2CreateCircleShape(game.ball.body_id, &ball_shape_def, &ball_collider);
 
   CalculateBrickDimensions(&game);
   InitBricksPositions(&game);
@@ -239,7 +238,7 @@ int main(void) {
   while (!WindowShouldClose()) {
     ProcessInput(&game);
 
-    b2World_Step(game.world_id, PHYSICS_TIME_STEP, PHYSICS_SUBSTEP_COUNT);
+    b2World_Step(game.world_id, GetFrameTime(), PHYSICS_SUBSTEP_COUNT);
 
     ClampPlayerMovement(&game.player);
     // MoveBall(&game);
