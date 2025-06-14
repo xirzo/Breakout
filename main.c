@@ -5,7 +5,6 @@
 #include <box2d/types.h>
 #include <iso646.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <threads.h>
 #include "box2d/box2d.h"

@@ -27,5 +27,6 @@ else()
 endif(FETCH_LIBS)
 unset(FETCH_LIBS CACHE)
 
-add_subdirectory(bin)
-add_subdirectory(lib)
+add_executable(${PROJECT_NAME} main.c)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib box2d m)
