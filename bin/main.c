@@ -3,6 +3,7 @@
 #include <box2d/id.h>
 #include <box2d/math_functions.h>
 #include <box2d/types.h>
+#include <math.h>
 #include <stdlib.h>
 #include <threads.h>
 #include "box2d/box2d.h"
@@ -34,6 +35,8 @@
 typedef struct Ball {
   Color color;
   float radius;
+  float max_speed;
+  float min_speed_multiplier;
   b2Vec2 initial_velocity;
   b2BodyId body_id;
 } Ball;
@@ -133,6 +136,25 @@ void ClampPlayerMovement(Player *player) {
   if (position.x + half_width > PIXELS_TO_WORLD(WIDTH)) {
     position.x = PIXELS_TO_WORLD(WIDTH) - half_width;
     b2Body_SetTransform(player->body_id, position, b2Rot_identity);
+  }
+}
+
+void ClampBallMovement(Game *game) {
+  b2Vec2 velocity = b2Body_GetLinearVelocity(game->ball.body_id);
+  float current_speed = sqrtf(velocity.x * velocity.x + velocity.y * velocity.y);
+
+  if (current_speed > game->ball.max_speed) {
+    float scale = game->ball.max_speed / current_speed;
+
+    b2Vec2 clamped_velocity = {velocity.x * scale, velocity.y * scale};
+
+    b2Body_SetLinearVelocity(game->ball.body_id, clamped_velocity);
+  } else if (current_speed > 0.1f && current_speed < game->ball.max_speed * 0.5f) {
+    float target_speed = game->ball.max_speed * game->ball.min_speed_multiplier;
+    float scale = target_speed / current_speed;
+    b2Vec2 boosted_velocity = {velocity.x * scale, velocity.y * scale};
+
+    b2Body_SetLinearVelocity(game->ball.body_id, boosted_velocity);
   }
 }
 
@@ -248,6 +270,8 @@ int main(void) {
                    {
                        .color = WHITE,
                        .radius = 8.f,
+                       .max_speed = 10.f,
+                       .min_speed_multiplier = 0.8f,
                        .initial_velocity = {PIXELS_TO_WORLD(150.f), PIXELS_TO_WORLD(300.f)},
                    },
                .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
@@ -281,7 +305,7 @@ int main(void) {
     }
 
     ClampPlayerMovement(&game.player);
-    // MoveBall(&game);
+    ClampBallMovement(&game);
 
     // FIX: use box2d position
     // if (game.ball.position.y - game.ball.radius * 2 >= HEIGHT) {
