@@ -1,6 +1,11 @@
-# 🧱 Breakout Game 🏓
+# 🧱 Breakout Game 
 
 A classic **Breakout** game implementation built with C.
+
+## 🏓 Current State
+
+![image](https://github.com/user-attachments/assets/5c4b60bb-562a-4eba-832b-75c274df6de2)
+
 
 ## 🕹️ Controls
 
