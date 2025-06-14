@@ -1,11 +1,10 @@
-# 🧱 Breakout Game 
+# 🧱 Breakout Game
 
 A classic **Breakout** game implementation built with C.
 
 ## 🏓 Current State
 
 ![image](https://github.com/user-attachments/assets/5c4b60bb-562a-4eba-832b-75c274df6de2)
-
 
 ## 🕹️ Controls
 
@@ -26,7 +25,7 @@ A classic **Breakout** game implementation built with C.
 ```bash
 # Make sure you have Raylib and Box2D installed
 mkdir build && cd build
-cmake ../.. -DFETCH_LIBS=ON
+cmake .. -DFETCH_LIBS=ON
 make
 ./breakout
 ```

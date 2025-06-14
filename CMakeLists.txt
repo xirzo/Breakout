@@ -4,6 +4,8 @@ project(breakout)
 option(FETCH_LIBS OFF)
 
 if (FETCH_LIBS)
+    include(FetchContent)
+
     FetchContent_Declare(
         box2d
         GIT_REPOSITORY https://github.com/erincatto/box2d.git
