@@ -25,6 +25,12 @@
 
 #define PHYSICS_SUBSTEP_COUNT 4
 
+#define PIXELS_PER_METER 50.0f
+#define METERS_PER_PIXEL (1.0f / PIXELS_PER_METER)
+
+#define WORLD_TO_PIXELS(x) ((x) * PIXELS_PER_METER)
+#define PIXELS_TO_WORLD(x) ((x) * METERS_PER_PIXEL)
+
 typedef struct Ball {
   Color color;
   float radius;
@@ -71,16 +77,17 @@ void ProcessInput(Game *game) {
   b2Vec2 velocity = b2Vec2_zero;
 
   if (IsKeyDown(KEY_A) || IsKeyDown(KEY_J)) {
-    velocity.x = -player->movement_speed;
+    velocity.x = -PIXELS_TO_WORLD(player->movement_speed);
   }
 
   if (IsKeyDown(KEY_D) || IsKeyDown(KEY_K)) {
-    velocity.x = player->movement_speed;
+    velocity.x = PIXELS_TO_WORLD(player->movement_speed);
   }
 
 #ifdef DEBUGGING
   if (IsKeyPressed(KEY_SPACE)) {
-    b2Vec2 restart_position = (b2Vec2){(float)WIDTH / 2, HEIGHT - (float)HEIGHT / 2};
+    b2Vec2 restart_position =
+        (b2Vec2){PIXELS_TO_WORLD((float)WIDTH / 2), PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 2)};
     b2Body_SetTransform(game->ball.body_id, restart_position, b2Rot_identity);
     b2Body_SetLinearVelocity(game->ball.body_id, game->ball.initial_velocity);
   }
@@ -114,13 +121,17 @@ void InitBricksPositions(Game *game) {
 
 void ClampPlayerMovement(Player *player) {
   b2Vec2 position = b2Body_GetPosition(player->body_id);
+  bool needs_update = false;
 
-  if (position.x < 0.f) {
-    position.x = 0;
+  float half_width = PIXELS_TO_WORLD(player->width / 2);
+
+  if (position.x - half_width < 0.f) {
+    position.x = half_width;
+
     b2Body_SetTransform(player->body_id, position, b2Rot_identity);
   }
-  if (position.x + player->width > WIDTH) {
-    position.x = WIDTH - player->width;
+  if (position.x + half_width > PIXELS_TO_WORLD(WIDTH)) {
+    position.x = PIXELS_TO_WORLD(WIDTH) - half_width;
     b2Body_SetTransform(player->body_id, position, b2Rot_identity);
   }
 }
@@ -141,47 +152,31 @@ void DrawBricks(Game *game) {
 void DrawPlayer(Game *game) {
   Player *player = &game->player;
   b2Vec2 position = b2Body_GetPosition(player->body_id);
-  DrawRectangle(position.x, position.y, player->width, player->height, player->color);
+
+  float screen_x = WORLD_TO_PIXELS(position.x) - player->width / 2;
+  float screen_y = WORLD_TO_PIXELS(position.y) - player->height / 2;
+
+  DrawRectangle(screen_x, screen_y, player->width, player->height, player->color);
 }
 
 void DrawBall(Game *game) {
   b2Vec2 position = b2Body_GetPosition(game->ball.body_id);
-  DrawCircle(position.x, position.y, game->ball.radius, game->ball.color);
-}
 
-// void MoveBall(Game *game) {
-//   Ball *ball = &game->ball;
-//   Vector2 *position = &game->ball.position;
-//   Vector2 *velocity = &game->ball.velocity;
-//
-//   position->x += velocity->x * game->ball.speed * GetFrameTime();
-//   position->y += velocity->y * game->ball.speed * GetFrameTime();
-//
-//   if (ball->position.x - ball->radius <= 0 || ball->position.x + ball->radius >= WIDTH) {
-//     ball->velocity.x *= -1;
-//   }
-//
-//   if (ball->position.y + ball->radius <= 0) {
-//     ball->velocity.y *= -1;
-//   }
-//
-//   if (CheckCollisionRecs((Rectangle){game->player.position.x, game->player.position.y, 80, 10},
-//                          (Rectangle){game->ball.position.x, game->ball.position.y,
-//                                      game->ball.radius * 2, game->ball.radius * 2})) {
-//     ball->velocity.y *= -1;
-//   }
-// }
+  float screen_x = WORLD_TO_PIXELS(position.x);
+  float screen_y = WORLD_TO_PIXELS(position.y);
+
+  DrawCircle(screen_x, screen_y, game->ball.radius, game->ball.color);
+}
 
 void CreatePlayer(Game *game) {
   b2BodyDef player_body_def = b2DefaultBodyDef();
   player_body_def.type = b2_kinematicBody;
   player_body_def.position =
-      (b2Vec2){(float)WIDTH / 2 - game->player.width / 2, (float)HEIGHT - (float)HEIGHT / 5};
-  b2BodyId player_body_id = b2CreateBody(game->world_id, &player_body_def);
+      (b2Vec2){PIXELS_TO_WORLD((float)WIDTH / 2), PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 5)};
+  game->player.body_id = b2CreateBody(game->world_id, &player_body_def);
 
-  game->player.body_id = player_body_id;
-
-  b2Polygon player_collider = b2MakeBox(game->player.width / 2, game->player.height / 2);
+  b2Polygon player_collider =
+      b2MakeBox(PIXELS_TO_WORLD(game->player.width / 2), PIXELS_TO_WORLD(game->player.height / 2));
   b2ShapeDef player_shape_def = b2DefaultShapeDef();
   player_shape_def.material.friction = 0.3f;
   player_shape_def.material.restitution = 1.2f;
@@ -191,15 +186,12 @@ void CreatePlayer(Game *game) {
 void CreateBall(Game *game) {
   b2BodyDef ball_body_def = b2DefaultBodyDef();
   ball_body_def.type = b2_dynamicBody;
-  ball_body_def.position = (b2Vec2){(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 2};
-  b2BodyId ball_body_id = b2CreateBody(game->world_id, &ball_body_def);
+  ball_body_def.position =
+      (b2Vec2){PIXELS_TO_WORLD((float)WIDTH / 2), PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 2)};
+  game->ball.body_id = b2CreateBody(game->world_id, &ball_body_def);
 
-  game->ball.body_id = ball_body_id;
-
-  b2Circle ball_collider = (b2Circle){{0, 0}, game->ball.radius};
+  b2Circle ball_collider = {{0, 0}, PIXELS_TO_WORLD(game->ball.radius)};
   b2ShapeDef ball_shape_def = b2DefaultShapeDef();
-  ball_body_def.linearDamping = 0.0f;
-  ball_body_def.angularDamping = 0.0f;
   ball_shape_def.material.restitution = 1.0f;
   ball_shape_def.material.friction = 0.0f;
   b2CreateCircleShape(game->ball.body_id, &ball_shape_def, &ball_collider);
@@ -214,19 +206,25 @@ void CreateWalls(Game *game) {
   wall_shape_def.material.restitution = 1.0f;
   wall_shape_def.material.friction = 0.0f;
 
-  wall_body_def.position = (b2Vec2){-WALLS_WIDTH, (float)HEIGHT / 2};
+  wall_body_def.position =
+      (b2Vec2){PIXELS_TO_WORLD(-WALLS_WIDTH), PIXELS_TO_WORLD((float)HEIGHT / 2)};
   b2BodyId left_wall = b2CreateBody(game->world_id, &wall_body_def);
-  b2Polygon left_wall_collider = b2MakeBox(WALLS_WIDTH, (float)HEIGHT / 2);
+  b2Polygon left_wall_collider =
+      b2MakeBox(PIXELS_TO_WORLD(WALLS_WIDTH), PIXELS_TO_WORLD((float)HEIGHT / 2));
   b2CreatePolygonShape(left_wall, &wall_shape_def, &left_wall_collider);
 
-  wall_body_def.position = (b2Vec2){WIDTH + 10.f, (float)HEIGHT / 2};
+  wall_body_def.position =
+      (b2Vec2){PIXELS_TO_WORLD(WIDTH + WALLS_WIDTH), PIXELS_TO_WORLD((float)HEIGHT / 2)};
   b2BodyId right_wall = b2CreateBody(game->world_id, &wall_body_def);
-  b2Polygon right_wall_collider = b2MakeBox(WALLS_WIDTH, (float)HEIGHT / 2);
+  b2Polygon right_wall_collider =
+      b2MakeBox(PIXELS_TO_WORLD(WALLS_WIDTH), PIXELS_TO_WORLD((float)HEIGHT / 2));
   b2CreatePolygonShape(right_wall, &wall_shape_def, &right_wall_collider);
 
-  wall_body_def.position = (b2Vec2){(float)WIDTH / 2, -WALLS_WIDTH};
+  wall_body_def.position =
+      (b2Vec2){PIXELS_TO_WORLD((float)WIDTH / 2), PIXELS_TO_WORLD(-WALLS_WIDTH)};
   b2BodyId up_wall = b2CreateBody(game->world_id, &wall_body_def);
-  b2Polygon up_wall_collider = b2MakeBox((float)WIDTH / 2, WALLS_WIDTH);
+  b2Polygon up_wall_collider =
+      b2MakeBox(PIXELS_TO_WORLD((float)WIDTH / 2), PIXELS_TO_WORLD(WALLS_WIDTH));
   b2CreatePolygonShape(up_wall, &wall_shape_def, &up_wall_collider);
 }
 
@@ -250,7 +248,7 @@ int main(void) {
                    {
                        .color = WHITE,
                        .radius = 8.f,
-                       .initial_velocity = {100.f, 500.f},
+                       .initial_velocity = {PIXELS_TO_WORLD(150.f), PIXELS_TO_WORLD(300.f)},
                    },
                .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
                .world_id = world_id};
@@ -274,7 +272,13 @@ int main(void) {
   while (!WindowShouldClose()) {
     ProcessInput(&game);
 
-    b2World_Step(game.world_id, GetFrameTime(), PHYSICS_SUBSTEP_COUNT);
+    float frame_time = GetFrameTime();
+    int steps = (int)(frame_time / (1.0f / 120.0f)) + 1;
+    float time_step = frame_time / steps;
+
+    for (int i = 0; i < steps; i++) {
+      b2World_Step(game.world_id, time_step, 8);
+    }
 
     ClampPlayerMovement(&game.player);
     // MoveBall(&game);
@@ -295,16 +299,15 @@ int main(void) {
     b2Vec2 ball_vel = b2Body_GetLinearVelocity(game.ball.body_id);
     b2Vec2 ball_world_pos = b2Body_GetPosition(game.ball.body_id);
 
-    DrawLine(ball_world_pos.x, ball_world_pos.y, DEBUG_LINE_LENGTH * ball_vel.x + ball_world_pos.x,
-             DEBUG_LINE_LENGTH * ball_vel.y + ball_world_pos.y, RED);
+    float screen_x = WORLD_TO_PIXELS(ball_world_pos.x);
+    float screen_y = WORLD_TO_PIXELS(ball_world_pos.y);
+
+    DrawLine(screen_x, screen_y, screen_x + ball_vel.x * DEBUG_LINE_LENGTH,
+             screen_y + ball_vel.y * DEBUG_LINE_LENGTH, RED);
 
     DrawFPS(10, HEIGHT - 30.f);
     DrawText(TextFormat("Ball Vel: (%.2f, %.2f)", ball_vel.x, ball_vel.y), 10, 10, 20, WHITE);
-    DrawText(TextFormat("Ball Pos: (%.1f, %.1f)", (ball_world_pos.x), (ball_world_pos.y)), 10, 35,
-             20, WHITE);
-    DrawText(
-        TextFormat("Ball Speed: %.2f", sqrtf(ball_vel.x * ball_vel.x + ball_vel.y * ball_vel.y)),
-        10, 60, 20, WHITE);
+    DrawText(TextFormat("Ball Pos: (%.1f, %.1f)", screen_x, screen_y), 10, 35, 20, WHITE);
     DrawText("Press SPACE to reset ball", 10, 85, 20, WHITE);
 #endif
 
