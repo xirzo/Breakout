@@ -28,7 +28,6 @@ typedef struct Ball {
   Color color;
   float radius;
   float speed;
-  // Vector2 position;
   b2BodyId body_id;
 } Ball;
 
@@ -41,8 +40,6 @@ typedef struct Player {
   float width;
   float height;
   Color color;
-  // Vector2 position;
-
   b2BodyId body_id;
 } Player;
 
@@ -70,20 +67,23 @@ void ProcessInput(Game *game) {
     CloseWindow();
   }
 
+  b2Vec2 velocity = b2Vec2_zero;
+
   if (IsKeyDown(KEY_A) || IsKeyDown(KEY_J)) {
-    // player->position.x -= player->movement_speed * GetFrameTime();
+    velocity.x = -player->movement_speed;
   }
 
   if (IsKeyDown(KEY_D) || IsKeyDown(KEY_K)) {
-    // player->position.x += player->movement_speed * GetFrameTime();
+    velocity.x = player->movement_speed;
   }
 
 #ifdef DEBUGGING
   // if (IsKeyPressed(KEY_SPACE)) {
   //   game->ball.position = (Vector2){(float)WIDTH / 2, HEIGHT - (float)HEIGHT / 2};
-  //   game->ball.velocity = (Vector2){0.3f, 1.0f};
-  // }
+  //   game->ball.velocity = (Vector2){0.3f, 1.0f}; }
 #endif /* ifdef MACRO */
+
+  b2Body_SetLinearVelocity(game->player.body_id, velocity);
 }
 
 void CalculateBrickDimensions(Game *game) {
@@ -227,16 +227,16 @@ int main(void) {
   DisableCursor();
 
   while (!WindowShouldClose()) {
+    ProcessInput(&game);
+
     b2World_Step(game.world_id, PHYSICS_TIME_STEP, PHYSICS_SUBSTEP_COUNT);
-    ClampPlayerMovement(&game.player);
+    // ClampPlayerMovement(&game.player);
     // MoveBall(&game);
 
     // FIX: use box2d position
     // if (game.ball.position.y - game.ball.radius * 2 >= HEIGHT) {
     // TODO: DEATH (-1 LIFE)
     // }
-
-    ProcessInput(&game);
 
     BeginDrawing();
     ClearBackground(game.background_color);
