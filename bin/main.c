@@ -325,9 +325,10 @@ int main(void) {
     b2Vec2 bp = b2Body_GetPosition(game.ball.body_id);
 
     if (bp.y >= PIXELS_TO_WORLD(HEIGHT)) {
-      /*
-      DEATH
-      */
+      b2Vec2 restart_position =
+          (b2Vec2){PIXELS_TO_WORLD((float)WIDTH / 2), PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 2)};
+      b2Body_SetTransform(game.ball.body_id, restart_position, b2Rot_identity);
+      b2Body_SetLinearVelocity(game.ball.body_id, game.ball.initial_velocity);
     }
 
     BeginDrawing();
@@ -356,6 +357,7 @@ int main(void) {
     EndDrawing();
   }
 
+  b2DestroyWorld(world_id);
   free(game.bricks);
   CloseWindow();
   return 0;
