@@ -11,7 +11,7 @@
  Remove #define DEBUGGING and #define DEBUG_LINE_LENGTH 10.f
 */
 #define DEBUGGING
-#define DEBUG_LINE_LENGTH 50.f
+#define DEBUG_LINE_LENGTH 0.2f
 
 #define WIDTH 1280
 #define HEIGHT 720
@@ -82,7 +82,7 @@ void ProcessInput(Game *game) {
     b2Body_SetTransform(game->ball.body_id, restart_position, b2Rot_identity);
     b2Body_SetLinearVelocity(game->ball.body_id, game->ball.initial_velocity);
   }
-#endif /* ifdef MACRO */
+#endif
 
   b2Body_SetLinearVelocity(game->player.body_id, velocity);
 }
@@ -170,9 +170,43 @@ void DrawBall(Game *game) {
 //   }
 // }
 
+void CreatePlayer(Game *game) {
+  b2BodyDef player_body_def = b2DefaultBodyDef();
+  player_body_def.type = b2_kinematicBody;
+  player_body_def.position =
+      (b2Vec2){(float)WIDTH / 2 - game->player.width / 2, (float)HEIGHT - (float)HEIGHT / 5};
+  b2BodyId player_body_id = b2CreateBody(game->world_id, &player_body_def);
+
+  game->player.body_id = player_body_id;
+
+  b2Polygon player_collider = b2MakeBox(game->player.width / 2, game->player.height / 2);
+  b2ShapeDef player_shape_def = b2DefaultShapeDef();
+  player_shape_def.material.friction = 0.3f;
+  player_shape_def.material.restitution = 1.2f;
+  b2CreatePolygonShape(game->player.body_id, &player_shape_def, &player_collider);
+}
+
+void CreateBall(Game *game) {
+  b2BodyDef ball_body_def = b2DefaultBodyDef();
+  ball_body_def.type = b2_dynamicBody;
+  ball_body_def.position = (b2Vec2){(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 2};
+  b2BodyId ball_body_id = b2CreateBody(game->world_id, &ball_body_def);
+
+  game->ball.body_id = ball_body_id;
+
+  b2Circle ball_collider = (b2Circle){{0, 0}, game->ball.radius};
+  b2ShapeDef ball_shape_def = b2DefaultShapeDef();
+  ball_body_def.linearDamping = 0.0f;
+  ball_body_def.angularDamping = 0.0f;
+  ball_shape_def.material.restitution = 1.0f;
+  ball_shape_def.material.friction = 0.0f;
+  b2CreateCircleShape(game->ball.body_id, &ball_shape_def, &ball_collider);
+}
+
 int main(void) {
   b2WorldDef world_def = b2DefaultWorldDef();
   world_def.gravity = b2Vec2_zero;
+  world_def.enableContinuous = 1;
   b2WorldId world_id = b2CreateWorld(&world_def);
 
   Game game = {.BRICKS_IN_ROW = 8,
@@ -194,34 +228,8 @@ int main(void) {
                .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
                .world_id = world_id};
 
-  b2BodyDef player_body_def = b2DefaultBodyDef();
-  player_body_def.type = b2_kinematicBody;
-  player_body_def.position =
-      (b2Vec2){(float)WIDTH / 2 - game.player.width / 2, (float)HEIGHT - (float)HEIGHT / 5};
-  b2BodyId player_body_id = b2CreateBody(world_id, &player_body_def);
-
-  game.player.body_id = player_body_id;
-
-  b2Polygon player_collider = b2MakeBox(game.player.width / 2, game.player.height / 2);
-  b2ShapeDef player_shape_def = b2DefaultShapeDef();
-  player_shape_def.material.friction = 0.3f;
-  player_shape_def.material.restitution = 1.2f;
-  b2CreatePolygonShape(game.player.body_id, &player_shape_def, &player_collider);
-
-  b2BodyDef ball_body_def = b2DefaultBodyDef();
-  ball_body_def.type = b2_dynamicBody;
-  ball_body_def.position = (b2Vec2){(float)WIDTH / 2, (float)HEIGHT - (float)HEIGHT / 2};
-  b2BodyId ball_body_id = b2CreateBody(world_id, &ball_body_def);
-
-  game.ball.body_id = ball_body_id;
-
-  b2Circle ball_collider = (b2Circle){{0, 0}, game.ball.radius};
-  b2ShapeDef ball_shape_def = b2DefaultShapeDef();
-  ball_body_def.linearDamping = 0.0f;
-  ball_body_def.angularDamping = 0.0f;
-  ball_shape_def.material.restitution = 1.0f;
-  ball_shape_def.material.friction = 0.0f;
-  b2CreateCircleShape(game.ball.body_id, &ball_shape_def, &ball_collider);
+  CreatePlayer(&game);
+  CreateBall(&game);
 
   CalculateBrickDimensions(&game);
   InitBricksPositions(&game);
@@ -256,16 +264,20 @@ int main(void) {
     DrawBall(&game);
 
 #ifdef DEBUGGING
-    // Vector2 *ball_vel = &game.ball.velocity;
-    // Vector2 *ball_pos = &game.ball.position;
+    b2Vec2 ball_vel = b2Body_GetLinearVelocity(game.ball.body_id);
+    b2Vec2 ball_world_pos = b2Body_GetPosition(game.ball.body_id);
 
-    // DrawLine(ball_pos->x, ball_pos->y, ball_pos->x, ball_pos->y + DEBUG_LINE_LENGTH, RED);
+    DrawLine(ball_world_pos.x, ball_world_pos.y, DEBUG_LINE_LENGTH * ball_vel.x + ball_world_pos.x,
+             DEBUG_LINE_LENGTH * ball_vel.y + ball_world_pos.y, RED);
 
     DrawFPS(10, HEIGHT - 30.f);
-    // DrawText(TextFormat("Ball Vel: (%.2f, %.2f)", ball_vel->x, ball_vel->y), 10, 10, 20, WHITE);
-
-    // float hit_pos = (ball_pos->x - game.player.position.x) / game.player.width;
-    // DrawText(TextFormat("Hit Position: %.2f", hit_pos), 10, 35, 20, WHITE);
+    DrawText(TextFormat("Ball Vel: (%.2f, %.2f)", ball_vel.x, ball_vel.y), 10, 10, 20, WHITE);
+    DrawText(TextFormat("Ball Pos: (%.1f, %.1f)", (ball_world_pos.x), (ball_world_pos.y)), 10, 35,
+             20, WHITE);
+    DrawText(
+        TextFormat("Ball Speed: %.2f", sqrtf(ball_vel.x * ball_vel.x + ball_vel.y * ball_vel.y)),
+        10, 60, 20, WHITE);
+    DrawText("Press SPACE to reset ball", 10, 85, 20, WHITE);
 #endif
 
     EndDrawing();
