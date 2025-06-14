@@ -21,6 +21,8 @@
 #define BRICKS_MARGIN 10.f
 #define BRICKS_AREA_HEIGHT 300.f
 
+#define WALLS_WIDTH 10.f
+
 #define PHYSICS_SUBSTEP_COUNT 4
 
 typedef struct Ball {
@@ -203,6 +205,31 @@ void CreateBall(Game *game) {
   b2CreateCircleShape(game->ball.body_id, &ball_shape_def, &ball_collider);
 }
 
+void CreateWalls(Game *game) {
+  b2BodyDef wall_body_def = b2DefaultBodyDef();
+  wall_body_def.type = b2_staticBody;
+  b2BodyId wall_body_id = b2CreateBody(game->world_id, &wall_body_def);
+
+  b2ShapeDef wall_shape_def = b2DefaultShapeDef();
+  wall_shape_def.material.restitution = 1.0f;
+  wall_shape_def.material.friction = 0.0f;
+
+  wall_body_def.position = (b2Vec2){-WALLS_WIDTH, (float)HEIGHT / 2};
+  b2BodyId left_wall = b2CreateBody(game->world_id, &wall_body_def);
+  b2Polygon left_wall_collider = b2MakeBox(WALLS_WIDTH, (float)HEIGHT / 2);
+  b2CreatePolygonShape(left_wall, &wall_shape_def, &left_wall_collider);
+
+  wall_body_def.position = (b2Vec2){WIDTH + 10.f, (float)HEIGHT / 2};
+  b2BodyId right_wall = b2CreateBody(game->world_id, &wall_body_def);
+  b2Polygon right_wall_collider = b2MakeBox(WALLS_WIDTH, (float)HEIGHT / 2);
+  b2CreatePolygonShape(right_wall, &wall_shape_def, &right_wall_collider);
+
+  wall_body_def.position = (b2Vec2){(float)WIDTH / 2, -WALLS_WIDTH};
+  b2BodyId up_wall = b2CreateBody(game->world_id, &wall_body_def);
+  b2Polygon up_wall_collider = b2MakeBox((float)WIDTH / 2, WALLS_WIDTH);
+  b2CreatePolygonShape(up_wall, &wall_shape_def, &up_wall_collider);
+}
+
 int main(void) {
   b2WorldDef world_def = b2DefaultWorldDef();
   world_def.gravity = b2Vec2_zero;
@@ -223,13 +250,14 @@ int main(void) {
                    {
                        .color = WHITE,
                        .radius = 8.f,
-                       .initial_velocity = {0.f, 500.f},
+                       .initial_velocity = {100.f, 500.f},
                    },
                .bricks = malloc(sizeof(Brick) * game.BRICKS_IN_ROW * ROWS_NUMBER),
                .world_id = world_id};
 
   CreatePlayer(&game);
   CreateBall(&game);
+  CreateWalls(&game);
 
   CalculateBrickDimensions(&game);
   InitBricksPositions(&game);
