@@ -109,19 +109,6 @@ void CalculateBrickDimensions(Game *game) {
   game->brick_height = (available_height - vertical_padding) / ROWS_NUMBER;
 }
 
-void InitBricksPositions(Game *game) {
-  Brick *bricks = game->bricks;
-
-  for (int i = 0; i < game->BRICKS_IN_ROW; i++) {
-    for (int j = 0; j < ROWS_NUMBER; j++) {
-      Vector2 *position = &bricks[i + j * game->BRICKS_IN_ROW].position;
-
-      position->x = BRICKS_MARGIN + i * (game->brick_width + BRICKS_PADDING);
-      position->y = BRICKS_MARGIN + j * (game->brick_height + BRICKS_PADDING);
-    }
-  }
-}
-
 void ClampPlayerMovement(Player *player) {
   b2Vec2 position = b2Body_GetPosition(player->body_id);
   bool needs_update = false;
@@ -250,6 +237,36 @@ void CreateWalls(Game *game) {
   b2CreatePolygonShape(up_wall, &wall_shape_def, &up_wall_collider);
 }
 
+void CreateBricks(Game *game) {
+  CalculateBrickDimensions(game);
+
+  b2BodyDef brick_body_def = b2DefaultBodyDef();
+  brick_body_def.type = b2_staticBody;
+
+  b2ShapeDef brick_shape_def = b2DefaultShapeDef();
+  brick_shape_def.material.restitution = 1.0f;
+  brick_shape_def.material.friction = 0.0f;
+
+  Brick *bricks = game->bricks;
+
+  for (int i = 0; i < game->BRICKS_IN_ROW; i++) {
+    for (int j = 0; j < ROWS_NUMBER; j++) {
+      Vector2 *position = &bricks[i + j * game->BRICKS_IN_ROW].position;
+
+      position->x = BRICKS_MARGIN + i * (game->brick_width + BRICKS_PADDING);
+      position->y = BRICKS_MARGIN + j * (game->brick_height + BRICKS_PADDING);
+
+      brick_body_def.position =
+          (b2Vec2){PIXELS_TO_WORLD(position->x), PIXELS_TO_WORLD(position->y)};
+
+      b2BodyId brick_body_id = b2CreateBody(game->world_id, &brick_body_def);
+      b2Polygon brick_collider = b2MakeBox(PIXELS_TO_WORLD(game->brick_width / 2),
+                                           PIXELS_TO_WORLD(game->brick_height / 2));
+      b2CreatePolygonShape(brick_body_id, &brick_shape_def, &brick_collider);
+    }
+  }
+}
+
 int main(void) {
   b2WorldDef world_def = b2DefaultWorldDef();
   world_def.gravity = b2Vec2_zero;
@@ -280,9 +297,7 @@ int main(void) {
   CreatePlayer(&game);
   CreateBall(&game);
   CreateWalls(&game);
-
-  CalculateBrickDimensions(&game);
-  InitBricksPositions(&game);
+  CreateBricks(&game);
 
   InitWindow(WIDTH, HEIGHT, "Game");
 
@@ -307,10 +322,13 @@ int main(void) {
     ClampPlayerMovement(&game.player);
     ClampBallMovement(&game);
 
-    // FIX: use box2d position
-    // if (game.ball.position.y - game.ball.radius * 2 >= HEIGHT) {
-    // TODO: DEATH (-1 LIFE)
-    // }
+    b2Vec2 bp = b2Body_GetPosition(game.ball.body_id);
+
+    if (bp.y >= PIXELS_TO_WORLD(HEIGHT)) {
+      /*
+      DEATH
+      */
+    }
 
     BeginDrawing();
     ClearBackground(game.background_color);
@@ -323,8 +341,8 @@ int main(void) {
     b2Vec2 ball_vel = b2Body_GetLinearVelocity(game.ball.body_id);
     b2Vec2 ball_world_pos = b2Body_GetPosition(game.ball.body_id);
 
-    float screen_x = WORLD_TO_PIXELS(ball_world_pos.x);
-    float screen_y = WORLD_TO_PIXELS(ball_world_pos.y);
+    float screen_x = WORLD_TO_PIXELS(bp.x);
+    float screen_y = WORLD_TO_PIXELS(bp.y);
 
     DrawLine(screen_x, screen_y, screen_x + ball_vel.x * DEBUG_LINE_LENGTH,
              screen_y + ball_vel.y * DEBUG_LINE_LENGTH, RED);
@@ -344,6 +362,5 @@ int main(void) {
 }
 
 // TODO: resizing of game
-// TODO: better ball repel
 // TODO: removal of bricks
 // TODO: score
