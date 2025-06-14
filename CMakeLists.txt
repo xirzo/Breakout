@@ -31,4 +31,8 @@ unset(FETCH_LIBS CACHE)
 
 add_executable(${PROJECT_NAME} main.c)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib box2d m)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib box2d)
+
+if (NOT MSVC)
+    target_link_libraries(${PROJECT_NAME} PRIVATE m)
+endif()

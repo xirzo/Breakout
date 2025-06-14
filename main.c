@@ -6,14 +6,10 @@
 #include <iso646.h>
 #include <math.h>
 #include <stdlib.h>
-#include <threads.h>
 #include "box2d/box2d.h"
 
-/*
- Remove #define DEBUGGING and #define DEBUG_LINE_LENGTH 10.f
-*/
-#define DEBUGGING
-#define DEBUG_LINE_LENGTH 50.f
+// #define DEBUGGING
+// #define DEBUG_LINE_LENGTH 50.f
 
 #define WIDTH 1280
 #define HEIGHT 720
