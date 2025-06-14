@@ -111,12 +111,16 @@ void InitBricksPositions(Game *game) {
 }
 
 void ClampPlayerMovement(Player *player) {
-  // if (player->position.x < 0.f) {
-  //   player->position.x = 0.f;
-  // }
-  // if (player->position.x + player->width > WIDTH) {
-  //   player->position.x = WIDTH - player->width;
-  // }
+  b2Vec2 position = b2Body_GetPosition(player->body_id);
+
+  if (position.x < 0.f) {
+    position.x = 0;
+    b2Body_SetTransform(player->body_id, position, b2Rot_identity);
+  }
+  if (position.x + player->width > WIDTH) {
+    position.x = WIDTH - player->width;
+    b2Body_SetTransform(player->body_id, position, b2Rot_identity);
+  }
 }
 
 void DrawBricks(Game *game) {
@@ -231,7 +235,8 @@ int main(void) {
     ProcessInput(&game);
 
     b2World_Step(game.world_id, PHYSICS_TIME_STEP, PHYSICS_SUBSTEP_COUNT);
-    // ClampPlayerMovement(&game.player);
+
+    ClampPlayerMovement(&game.player);
     // MoveBall(&game);
 
     // FIX: use box2d position
