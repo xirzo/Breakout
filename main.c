@@ -15,7 +15,19 @@ typedef struct {
     Vector2 position;
 } bkPosition;
 
+typedef struct {
+    Vector2 velocity;
+    float   speed;
+} bkVelocity;
+
+typedef struct {
+    KeyboardKey left;
+    KeyboardKey right;
+} bkInput;
+
 static void DrawTextureSystem(ecs_iter_t *it);
+static void InputSystem(ecs_iter_t *it);
+static void MoveSystem(ecs_iter_t *it);
 
 int main(void) {
     SetTraceLogLevel(LOG_NONE);
@@ -27,10 +39,17 @@ int main(void) {
     Texture2D platform_texture = LoadTexture("platform.png");
 
     ECS_COMPONENT(world, bkPosition);
+    ECS_COMPONENT(world, bkVelocity);
     ECS_COMPONENT(world, bkTexture);
+    ECS_COMPONENT(world, bkInput);
 
     ECS_SYSTEM(
         world, DrawTextureSystem, EcsOnUpdate, [in] bkPosition, [in] bkTexture
+    );
+    ECS_SYSTEM(world, InputSystem, EcsOnUpdate, [out] bkVelocity, [in] bkInput);
+
+    ECS_SYSTEM(
+        world, MoveSystem, EcsOnUpdate, [in] bkVelocity, [out] bkPosition
     );
 
     ecs_entity_t player = ecs_new(world);
@@ -44,8 +63,10 @@ int main(void) {
                             + PLATFORM_MARGIN }
 
         }
+
     );
 
+    ecs_set(world, player, bkVelocity, { .velocity = { 0, 0 }, .speed = 400 });
     ecs_set(
         world,
         player,
@@ -55,12 +76,21 @@ int main(void) {
         }
     );
 
+    ecs_set(
+        world,
+        player,
+        bkInput,
+        {
+            .left = KEY_J,
+            .right = KEY_K,
+        }
+    );
+
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
 
         ecs_progress(world, GetFrameTime());
-        // ecs_run(world, ecs_id(DrawTextureSystem), GetFrameTime(), NULL);
 
         EndDrawing();
     }
@@ -80,5 +110,38 @@ void DrawTextureSystem(ecs_iter_t *it) {
         Texture2D *tex = &textures[i].texture;
 
         DrawTextureV(*tex, *pos, RED);
+    }
+}
+
+void InputSystem(ecs_iter_t *it) {
+    bkVelocity *velocities = ecs_field(it, bkVelocity, 0);
+    bkInput    *inputs = ecs_field(it, bkInput, 1);
+
+    for (int i = 0; i < it->count; i++) {
+        Vector2 *vel = &velocities[i].velocity;
+        bkInput *inp = &inputs[i];
+
+        *vel = (Vector2){ 0.f, 0.f };
+
+        if (IsKeyDown(inp->left)) {
+            *vel = (Vector2){ -1.f, 0.f };
+        }
+        if (IsKeyDown(inp->right)) {
+            *vel = (Vector2){ 1.f, 0.f };
+        }
+    }
+}
+
+void MoveSystem(ecs_iter_t *it) {
+    bkVelocity *velocities = ecs_field(it, bkVelocity, 0);
+    bkPosition *positions = ecs_field(it, bkPosition, 1);
+
+    for (int i = 0; i < it->count; i++) {
+        Vector2 *vel = &velocities[i].velocity;
+        float    speed = velocities[i].speed;
+        Vector2 *pos = &positions[i].position;
+
+        pos->x += vel->x * speed * it->delta_time;
+        pos->y += vel->y * speed * it->delta_time;
     }
 }
