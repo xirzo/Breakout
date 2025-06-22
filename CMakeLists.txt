@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26.0)
-project(breakout)
+project(breakout LANGUAGES CXX C)
 
 option(FETCH_LIBS OFF)
 
@@ -34,11 +34,14 @@ add_library(flecs STATIC flecs.c)
 
 find_package(logger REQUIRED)
 
-add_executable(${PROJECT_NAME} main.c)
 
 # target_link_libraries(${PROJECT_NAME} PRIVATE raylib cimgui logger::logger)
+add_executable(${PROJECT_NAME} main.cpp)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib logger::logger flecs)
 
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE m)
 endif()
+
+target_compile_options(${PROJECT_NAME} PRIVATE -std=c++0x)
