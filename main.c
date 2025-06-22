@@ -2,8 +2,8 @@
 #include <logger.h>
 #include "flecs.h"
 
-#define SCREEN_WIDTH  800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH  900
+#define SCREEN_HEIGHT 700
 
 #define PLATFORM_MARGIN 100.f
 
@@ -52,11 +52,16 @@ int main(void) {
         world, MoveSystem, EcsOnUpdate, [in] bkVelocity, [out] bkPosition
     );
 
-    ecs_entity_t player = ecs_new(world);
+    ecs_entity_t player_prefab = ecs_entity(
+        world,
+        {
+            .add = ecs_ids(EcsPrefab),
+        }
+    );
 
     ecs_set(
         world,
-        player,
+        player_prefab,
         bkPosition,
         { .position = { (SCREEN_WIDTH - platform_texture.width) / 2.f,
                         (SCREEN_HEIGHT - platform_texture.height) / 2.f
@@ -66,10 +71,12 @@ int main(void) {
 
     );
 
-    ecs_set(world, player, bkVelocity, { .velocity = { 0, 0 }, .speed = 400 });
+    ecs_set(
+        world, player_prefab, bkVelocity, { .velocity = { 0, 0 }, .speed = 400 }
+    );
     ecs_set(
         world,
-        player,
+        player_prefab,
         bkTexture,
         {
             .texture = platform_texture,
@@ -78,13 +85,18 @@ int main(void) {
 
     ecs_set(
         world,
-        player,
+        player_prefab,
         bkInput,
         {
             .left = KEY_J,
             .right = KEY_K,
         }
     );
+
+    ecs_entity_t player_inst_1 = ecs_new_w_pair(world, EcsIsA, player_prefab);
+    ecs_entity_t player_inst_2 = ecs_new_w_pair(world, EcsIsA, player_prefab);
+
+    ecs_set(world, player_inst_2, bkInput, { .left = KEY_A, .right = KEY_D });
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -145,3 +157,5 @@ void MoveSystem(ecs_iter_t *it) {
         pos->y += vel->y * speed * it->delta_time;
     }
 }
+
+// TODO: create player prefab
