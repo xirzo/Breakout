@@ -2,32 +2,23 @@
 #include <logger.h>
 #include "flecs.h"
 
-#define SCREEN_WIDTH  900
-#define SCREEN_HEIGHT 700
+#include "input.h"
+#include "renderable.h"
+#include "velocity.h"
+#include "position.h"
 
-#define PLATFORM_MARGIN 100.f
+#include "movement_system.h"
+#include "render_system.h"
+#include "input_system.h"
 
-typedef struct {
-    Texture2D texture;
-} bkTexture;
+#define DEBUGGING
 
-typedef struct {
-    float x;
-    float y;
-} bkPosition;
-
-typedef struct {
-    float x;
-    float y;
-    float speed;
-} bkVelocity;
-
-typedef struct {
-    KeyboardKey left;
-    KeyboardKey right;
-} bkInput;
+constexpr int SCREEN_WIDTH  = 1920;
+constexpr int SCREEN_HEIGHT = 1200;
+constexpr int PLATFORM_MARGIN = 100.f;
 
 int main(void) {
+    SetConfigFlags(FLAG_FULLSCREEN_MODE);  
     SetTraceLogLevel(LOG_NONE);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "breakout");
     SetTargetFPS(60);
@@ -38,45 +29,20 @@ int main(void) {
 
     auto player_prefab =
         world.prefab()
-            .set<bkPosition>({ (SCREEN_WIDTH - platform_texture.width) / 2.f,
-                               (SCREEN_HEIGHT - platform_texture.height) / 2.f
-                                   + PLATFORM_MARGIN })
-            .set<bkVelocity>({ 0, 0, 400.f })
-            .set<bkInput>({ KEY_J, KEY_K })
-            .set<bkTexture>({ platform_texture });
+            .set<bk::Position>( { (SCREEN_WIDTH - platform_texture.width) / 2.f, (SCREEN_HEIGHT - platform_texture.height) / 2.f + PLATFORM_MARGIN})
+            .set<bk::Velocity>({ 0, 0, 400.f })
+            .set<bk::Input>({ KEY_J, KEY_K })
+            .set<bk::Renderable>({ platform_texture });
 
     auto player_1 = world.entity().is_a(player_prefab);
 
-    auto move_system = world.system<bkPosition, bkVelocity>().each(
-        [](flecs::iter &it, size_t, bkPosition &pos, bkVelocity &vel) {
-            pos.x += vel.x * vel.speed * it.delta_time();
-            pos.y += vel.y * vel.speed * it.delta_time();
-        }
-    );
-
-    auto draw_sys = world.system<bkPosition, bkTexture>().each(
-        [](flecs::iter &it, size_t, bkPosition &pos, bkTexture &tex) {
-            DrawTexture(tex.texture, pos.x, pos.y, RED);
-        }
-    );
-
-    auto input_sys = world.system<bkVelocity, bkInput>().each(
-        [](flecs::iter &it, size_t, bkVelocity &vel, bkInput &inp) {
-            vel.x = 0;
-            vel.y = 0;
-
-            if (IsKeyDown(inp.left)) {
-                vel.x = -1;
-            }
-            if (IsKeyDown(inp.right)) {
-                vel.x = 1;
-            }
-        }
-    );
+    bk::register_movement_system(world);
+    bk::register_render_system(world);
+    bk::register_input_system(world);
 
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground(BEIGE);
 
         world.progress();
 
@@ -87,5 +53,3 @@ int main(void) {
     CloseWindow();
     return 0;
 }
-
-// TODO: create player prefab
