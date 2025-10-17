@@ -20,16 +20,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
             ARTIFACT_NAME: linux-build
-
+          - os: windows-latest
+            ARTIFACT_NAME: windows-build
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
@@ -61,6 +62,7 @@ jobs:
             echo "CMAKE_NEEDS_INSTALL=true" >> $GITHUB_OUTPUT
             echo "CMake not found, will install"
           fi
+        shell: bash
 
       - name: Install CMake (Ubuntu)
         if: runner.os == 'Linux' && steps.check_cmake.outputs.CMAKE_NEEDS_INSTALL == 'true'
@@ -96,20 +98,21 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Configure CMake (Debug)
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFETCH_LIBS=true
+      - name: Configure CMake (Release) - Windows
+        if: runner.os == 'Windows'
+        run: cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DFETCH_LIBS=true -A x64
 
-      - name: Build (Debug)
-        run: cmake --build build --config Debug
-
-      - name: Configure CMake (Release)
+      - name: Configure CMake (Release) - Linux
+        if: runner.os == 'Linux'
         run: cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DFETCH_LIBS=true
-
+      
       - name: Build (Release)
         run: cmake --build build-release --config Release
       
       - name: Save commit SHA
-        run: echo ${{ github.sha }} > build-release/commit-sha.txt
+        run: |
+          echo ${{ github.sha }} > build-release/commit-sha.txt
+        shell: bash
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
