@@ -1,4 +1,4 @@
-name: CMake CI/CD
+name: CMake
 
 on:
   push:
@@ -153,7 +153,6 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          find artifacts -type f -name "breakout" -o -name "*.exe" | xargs -I{} cp "{}" release-assets/
           
           cd artifacts
           for dir in */; do
