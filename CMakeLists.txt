@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.26.0)
-project(breakout)
+cmake_minimum_required(VERSION 3.25)
+project(breakout VERSION 1.0.0)
 
 option(FETCH_LIBS OFF)
 
@@ -36,3 +36,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE raylib box2d)
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE m)
 endif()
+
+message(STATUS "Building ${PROJECT_NAME} v${PROJECT_VERSION}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
