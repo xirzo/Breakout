@@ -1,8 +1,10 @@
+#include <assert.h>
 #include <raylib.h>
 #include <tomlc17.h>
 #include <iso646.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <box2d/box2d.h>
 
 #define DEBUGGING
@@ -30,43 +32,38 @@
 
 typedef struct Ball {
     Color    color;
-    float    radius;
-    float    max_speed;
-    float    min_speed_multiplier;
+    double   radius;
+    double   max_speed;
+    double   min_speed_multiplier;
     b2Vec2   initial_velocity;
     b2BodyId body_id;
 } Ball;
 
 typedef struct Brick {
     Vector2  position;
-    bool     active;
+    int      active;
     b2BodyId body_id;
 } Brick;
 
 typedef struct Player {
-    float     movement_speed;
-    float     width;
-    float     height;
+    double    movement_speed;
+    double    width;
+    double    height;
     Color     color;
     b2BodyId  body_id;
     b2Polygon collider;
 } Player;
 
 typedef struct Configuration {
-    const unsigned short BRICKS_IN_ROW;
-
-    float brick_width;
-    float brick_height;
-
-    Color background_color;
-
+    long        bricks_in_row;
+    double      brick_width;
+    double      brick_height;
+    Color       background_color;
     const Color rows_colors[ROWS_NUMBER];
     Player      player;
     Ball        ball;
-
-    Brick *bricks;
-
-    b2WorldId world_id;
+    Brick      *bricks;
+    b2WorldId   world_id;
 } Configuration;
 
 void ProcessInput(Configuration *config) {
@@ -89,8 +86,8 @@ void ProcessInput(Configuration *config) {
 #ifdef DEBUGGING
     if (IsKeyPressed(KEY_SPACE)) {
         b2Vec2 restart_position =
-            (b2Vec2){ PIXELS_TO_WORLD((float)WIDTH / 2),
-                      PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 2) };
+            (b2Vec2){ PIXELS_TO_WORLD((double)WIDTH / 2),
+                      PIXELS_TO_WORLD(HEIGHT - (double)HEIGHT / 2) };
         b2Body_SetTransform(
             config->ball.body_id, restart_position, b2Rot_identity
         );
@@ -104,20 +101,20 @@ void ProcessInput(Configuration *config) {
 }
 
 void CalculateBrickDimensions(Configuration *config) {
-    float available_width = WIDTH - BRICKS_MARGIN * 2;
-    float horizontal_padding = (config->BRICKS_IN_ROW - 1) * BRICKS_PADDING;
+    double available_width = WIDTH - BRICKS_MARGIN * 2;
+    double horizontal_padding = (config->bricks_in_row - 1) * BRICKS_PADDING;
     config->brick_width =
-        (available_width - horizontal_padding) / config->BRICKS_IN_ROW;
+        (available_width - horizontal_padding) / config->bricks_in_row;
 
-    float available_height = BRICKS_AREA_HEIGHT;
-    float vertical_padding = (ROWS_NUMBER - 1) * BRICKS_PADDING;
+    double available_height = BRICKS_AREA_HEIGHT;
+    double vertical_padding = (ROWS_NUMBER - 1) * BRICKS_PADDING;
     config->brick_height = (available_height - vertical_padding) / ROWS_NUMBER;
 }
 
 void ClampPlayerMovement(Player *player) {
     b2Vec2 position = b2Body_GetPosition(player->body_id);
 
-    float half_width = PIXELS_TO_WORLD(player->width / 2);
+    double half_width = PIXELS_TO_WORLD(player->width / 2);
 
     if (position.x - half_width < 0.f) {
         position.x = half_width;
@@ -131,27 +128,27 @@ void ClampPlayerMovement(Player *player) {
 
 void ClampBallMovement(Configuration *config) {
     b2Vec2 velocity = b2Body_GetLinearVelocity(config->ball.body_id);
-    float  current_speed =
+    double current_speed =
         sqrtf(velocity.x * velocity.x + velocity.y * velocity.y);
 
     if (current_speed > config->ball.max_speed) {
-        float  scale = config->ball.max_speed / current_speed;
+        double scale = config->ball.max_speed / current_speed;
         b2Vec2 clamped_velocity = { velocity.x * scale, velocity.y * scale };
         b2Body_SetLinearVelocity(config->ball.body_id, clamped_velocity);
     } else if (current_speed > 0.1f
                && current_speed < config->ball.max_speed * 0.5f) {
-        float target_speed =
+        double target_speed =
             config->ball.max_speed * config->ball.min_speed_multiplier;
-        float  scale = target_speed / current_speed;
+        double scale = target_speed / current_speed;
         b2Vec2 boosted_velocity = { velocity.x * scale, velocity.y * scale };
         b2Body_SetLinearVelocity(config->ball.body_id, boosted_velocity);
     }
 }
 
 void DrawBricks(Configuration *config) {
-    for (int i = 0; i < config->BRICKS_IN_ROW; i++) {
+    for (int i = 0; i < config->bricks_in_row; i++) {
         for (int j = 0; j < ROWS_NUMBER; j++) {
-            int      brick_index = i + j * config->BRICKS_IN_ROW;
+            int      brick_index = i + j * config->bricks_in_row;
             Vector2 *position = &config->bricks[brick_index].position;
 
             int color_index = j % ROWS_NUMBER;
@@ -171,8 +168,8 @@ void DrawPlayer(Configuration *config) {
     Player *player = &config->player;
     b2Vec2  position = b2Body_GetPosition(player->body_id);
 
-    float screen_x = WORLD_TO_PIXELS(position.x) - player->width / 2;
-    float screen_y = WORLD_TO_PIXELS(position.y) - player->height / 2;
+    double screen_x = WORLD_TO_PIXELS(position.x) - player->width / 2;
+    double screen_y = WORLD_TO_PIXELS(position.y) - player->height / 2;
 
     DrawRectangle(
         screen_x, screen_y, player->width, player->height, player->color
@@ -182,8 +179,8 @@ void DrawPlayer(Configuration *config) {
 void DrawBall(Configuration *config) {
     b2Vec2 position = b2Body_GetPosition(config->ball.body_id);
 
-    float screen_x = WORLD_TO_PIXELS(position.x);
-    float screen_y = WORLD_TO_PIXELS(position.y);
+    double screen_x = WORLD_TO_PIXELS(position.x);
+    double screen_y = WORLD_TO_PIXELS(position.y);
 
     DrawCircle(screen_x, screen_y, config->ball.radius, config->ball.color);
 }
@@ -192,8 +189,8 @@ void CreatePlayer(Configuration *config) {
     b2BodyDef player_body_def = b2DefaultBodyDef();
     player_body_def.type = b2_kinematicBody;
     player_body_def.position =
-        (b2Vec2){ PIXELS_TO_WORLD((float)WIDTH / 2),
-                  PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 5) };
+        (b2Vec2){ PIXELS_TO_WORLD((double)WIDTH / 2),
+                  PIXELS_TO_WORLD(HEIGHT - (double)HEIGHT / 5) };
     config->player.body_id = b2CreateBody(config->world_id, &player_body_def);
 
     b2Polygon player_collider = b2MakeBox(
@@ -214,8 +211,8 @@ void CreateBall(Configuration *config) {
     b2BodyDef ball_body_def = b2DefaultBodyDef();
     ball_body_def.type = b2_dynamicBody;
     ball_body_def.position =
-        (b2Vec2){ PIXELS_TO_WORLD((float)WIDTH / 2),
-                  PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 2) };
+        (b2Vec2){ PIXELS_TO_WORLD((double)WIDTH / 2),
+                  PIXELS_TO_WORLD(HEIGHT - (double)HEIGHT / 2) };
     ball_body_def.linearDamping = 0.0f;
     ball_body_def.angularDamping = 0.0f;
 
@@ -237,26 +234,26 @@ void CreateWalls(Configuration *config) {
     wall_shape_def.material.friction = 0.0f;
 
     wall_body_def.position = (b2Vec2){ PIXELS_TO_WORLD(-WALLS_WIDTH),
-                                       PIXELS_TO_WORLD((float)HEIGHT / 2) };
+                                       PIXELS_TO_WORLD((double)HEIGHT / 2) };
     b2BodyId  left_wall = b2CreateBody(config->world_id, &wall_body_def);
     b2Polygon left_wall_collider = b2MakeBox(
-        PIXELS_TO_WORLD(WALLS_WIDTH), PIXELS_TO_WORLD((float)HEIGHT / 2)
+        PIXELS_TO_WORLD(WALLS_WIDTH), PIXELS_TO_WORLD((double)HEIGHT / 2)
     );
     b2CreatePolygonShape(left_wall, &wall_shape_def, &left_wall_collider);
 
     wall_body_def.position = (b2Vec2){ PIXELS_TO_WORLD(WIDTH + WALLS_WIDTH),
-                                       PIXELS_TO_WORLD((float)HEIGHT / 2) };
+                                       PIXELS_TO_WORLD((double)HEIGHT / 2) };
     b2BodyId  right_wall = b2CreateBody(config->world_id, &wall_body_def);
     b2Polygon right_wall_collider = b2MakeBox(
-        PIXELS_TO_WORLD(WALLS_WIDTH), PIXELS_TO_WORLD((float)HEIGHT / 2)
+        PIXELS_TO_WORLD(WALLS_WIDTH), PIXELS_TO_WORLD((double)HEIGHT / 2)
     );
     b2CreatePolygonShape(right_wall, &wall_shape_def, &right_wall_collider);
 
-    wall_body_def.position = (b2Vec2){ PIXELS_TO_WORLD((float)WIDTH / 2),
+    wall_body_def.position = (b2Vec2){ PIXELS_TO_WORLD((double)WIDTH / 2),
                                        PIXELS_TO_WORLD(-WALLS_WIDTH) };
     b2BodyId  up_wall = b2CreateBody(config->world_id, &wall_body_def);
     b2Polygon up_wall_collider = b2MakeBox(
-        PIXELS_TO_WORLD((float)WIDTH / 2), PIXELS_TO_WORLD(WALLS_WIDTH)
+        PIXELS_TO_WORLD((double)WIDTH / 2), PIXELS_TO_WORLD(WALLS_WIDTH)
     );
     b2CreatePolygonShape(up_wall, &wall_shape_def, &up_wall_collider);
 }
@@ -273,9 +270,9 @@ void CreateBricks(Configuration *config) {
 
     Brick *bricks = config->bricks;
 
-    for (int i = 0; i < config->BRICKS_IN_ROW; i++) {
+    for (int i = 0; i < config->bricks_in_row; i++) {
         for (int j = 0; j < ROWS_NUMBER; j++) {
-            int      brick_index = i + j * config->BRICKS_IN_ROW;
+            int      brick_index = i + j * config->bricks_in_row;
             Vector2 *position = &bricks[brick_index].position;
 
             bricks[brick_index].active = true;
@@ -307,12 +304,12 @@ void CreateBricks(Configuration *config) {
 void CheckBallBrickCollisions(Configuration *config) {
     b2Vec2 ball_position = b2Body_GetPosition(config->ball.body_id);
 
-    float ball_screen_x = WORLD_TO_PIXELS(ball_position.x);
-    float ball_screen_y = WORLD_TO_PIXELS(ball_position.y);
+    double ball_screen_x = WORLD_TO_PIXELS(ball_position.x);
+    double ball_screen_y = WORLD_TO_PIXELS(ball_position.y);
 
-    for (int i = 0; i < config->BRICKS_IN_ROW; i++) {
+    for (int i = 0; i < config->bricks_in_row; i++) {
         for (int j = 0; j < ROWS_NUMBER; j++) {
-            int brick_index = i + j * config->BRICKS_IN_ROW;
+            int brick_index = i + j * config->bricks_in_row;
 
             if (!config->bricks[brick_index].active) {
                 continue;
@@ -347,7 +344,7 @@ void CheckBallBrickCollisions(Configuration *config) {
 }
 
 void DestroyAllBricks(Configuration *config) {
-    for (int i = 0; i < config->BRICKS_IN_ROW * ROWS_NUMBER; i++) {
+    for (int i = 0; i < config->bricks_in_row * ROWS_NUMBER; i++) {
         if (!B2_IS_NULL(config->bricks[i].body_id)) {
             b2DestroyBody(config->bricks[i].body_id);
             config->bricks[i].body_id = b2_nullBodyId;
@@ -355,15 +352,97 @@ void DestroyAllBricks(Configuration *config) {
     }
 }
 
-// ? add configuration externally
-int main(void) {
+#define TOML_GET_INT64(tab, key, var)                                                      \
+    {                                                                                      \
+        toml_datum_t value = toml_seek(tab, key);                                          \
+        if (value.type != TOML_INT64) {                                                    \
+            fprintf(                                                                       \
+                stderr,                                                                    \
+                "Failed to parse int64 from configuration with key \"%s\", skipping...\n", \
+                key                                                                        \
+            );                                                                             \
+        } else {                                                                           \
+            var = value.u.int64;                                                           \
+        }                                                                                  \
+    }
+
+#define TOML_GET_F64(tab, key, var)                                                          \
+    {                                                                                        \
+        toml_datum_t value = toml_seek(tab, key);                                            \
+        if (value.type != TOML_FP64) {                                                       \
+            fprintf(                                                                         \
+                stderr,                                                                      \
+                "Failed to parse float64 from configuration with key \"%s\", skipping...\n", \
+                key                                                                          \
+            );                                                                               \
+        } else {                                                                             \
+            var = value.u.fp64;                                                              \
+        }                                                                                    \
+    }
+
+void ProcessConfiguration(int argc, char **argv, Configuration *configuration) {
+    if (argc == 1) {
+        printf("No configuration provided, using the default\n");
+        printf("Usage: %s <path_to_config.toml>\n", argv[0]);
+        return;
+    }
+
+    FILE *config_file = fopen(argv[1], "r");
+
+    if (!config_file) {
+        fprintf(stderr, "Failed to open configuration file, skipping...\n");
+        return;
+    }
+
+    toml_result_t parse_result = toml_parse_file(config_file);
+
+    if (!parse_result.ok) {
+        fprintf(
+            stderr,
+            "Failed to read configuration file with error:\n%s, skipping...\n",
+            parse_result.errmsg
+        );
+
+        fclose(config_file);
+        toml_free(parse_result);
+        return;
+    }
+
+    TOML_GET_INT64(
+        parse_result.toptab, "game.bricks_in_row", configuration->bricks_in_row
+    );
+    TOML_GET_INT64(
+        parse_result.toptab, "player.width", configuration->player.width
+    );
+    TOML_GET_INT64(
+        parse_result.toptab, "player.height", configuration->player.height
+    );
+    TOML_GET_F64(
+        parse_result.toptab,
+        "player.movement_speed",
+        configuration->player.movement_speed
+    );
+    TOML_GET_F64(
+        parse_result.toptab, "ball.radius", configuration->ball.radius
+    );
+    TOML_GET_F64(
+        parse_result.toptab,
+        "ball.min_speed_multiplier",
+        configuration->ball.min_speed_multiplier
+    );
+
+    fclose(config_file);
+    toml_free(parse_result);
+}
+
+int main(int argc, char **argv) {
     b2WorldDef world_def = b2DefaultWorldDef();
     world_def.gravity = b2Vec2_zero;
     world_def.enableContinuous = true;
     b2WorldId world_id = b2CreateWorld(&world_def);
 
     Configuration config = {
-        .BRICKS_IN_ROW = 8,
+        .bricks_in_row = 8,
         .rows_colors = {RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK, MAROON},
         .background_color = BLACK,
         .player = {
@@ -379,13 +458,18 @@ int main(void) {
             .min_speed_multiplier = 0.8f,
             .initial_velocity = {PIXELS_TO_WORLD(150.f), PIXELS_TO_WORLD(300.f)},
         },
-        .bricks = malloc(sizeof(Brick) * config.BRICKS_IN_ROW * ROWS_NUMBER),
-        .world_id = world_id};
+        .bricks = malloc(sizeof(Brick) * config.bricks_in_row * ROWS_NUMBER),
+        .world_id = world_id
+    };
+
+    ProcessConfiguration(argc, argv, &config);
 
     CreatePlayer(&config);
     CreateBall(&config);
     CreateWalls(&config);
     CreateBricks(&config);
+
+    SetTraceLogLevel(LOG_WARNING);
 
     InitWindow(WIDTH, HEIGHT, "Breakout");
     SetTargetFPS(60);
@@ -397,9 +481,9 @@ int main(void) {
 
         CheckBallBrickCollisions(&config);
 
-        float frame_time = GetFrameTime();
-        int   steps = (int)(frame_time / (1.0f / 120.0f)) + 1;
-        float time_step = frame_time / steps;
+        double frame_time = GetFrameTime();
+        int    steps = (int)(frame_time / (1.0f / 120.0f)) + 1;
+        double time_step = frame_time / steps;
 
         for (int i = 0; i < steps; i++) {
             b2World_Step(config.world_id, time_step, 8);
@@ -412,8 +496,8 @@ int main(void) {
 
         if (bp.y >= PIXELS_TO_WORLD(HEIGHT)) {
             b2Vec2 restart_position =
-                (b2Vec2){ PIXELS_TO_WORLD((float)WIDTH / 2),
-                          PIXELS_TO_WORLD(HEIGHT - (float)HEIGHT / 2) };
+                (b2Vec2){ PIXELS_TO_WORLD((double)WIDTH / 2),
+                          PIXELS_TO_WORLD(HEIGHT - (double)HEIGHT / 2) };
             b2Body_SetTransform(
                 config.ball.body_id, restart_position, b2Rot_identity
             );
@@ -431,8 +515,8 @@ int main(void) {
 
 #ifdef DEBUGGING
         b2Vec2 ball_vel = b2Body_GetLinearVelocity(config.ball.body_id);
-        float  screen_x = WORLD_TO_PIXELS(bp.x);
-        float  screen_y = WORLD_TO_PIXELS(bp.y);
+        double screen_x = WORLD_TO_PIXELS(bp.x);
+        double screen_y = WORLD_TO_PIXELS(bp.y);
 
         DrawLine(
             screen_x,
