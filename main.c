@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <raylib.h>
 #include <tomlc17.h>
 #include <iso646.h>
@@ -7,7 +6,6 @@
 #include <stdio.h>
 #include <box2d/box2d.h>
 
-#define DEBUGGING
 #define DEBUG_LINE_LENGTH 50.f
 
 #define WIDTH  1280

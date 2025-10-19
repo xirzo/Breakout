@@ -1,29 +1,8 @@
-# Configuration config = {
-#     .BRICKS_IN_ROW = 8,
-#     .rows_colors = {RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK, MAROON},
-#     .background_color = BLACK,
-#     .player = {
-#         .movement_speed = 400.f,
-#         .width = 100,
-#         .height = 15,
-#         .color = DARKBLUE,
-#     },
-#     .ball = {
-#         .color = WHITE,
-#         .radius = 8.f,
-#         .max_speed = PIXELS_TO_WORLD(400.f),
-#         .min_speed_multiplier = 0.8f,
-#         .initial_velocity = {PIXELS_TO_WORLD(150.f), PIXELS_TO_WORLD(300.f)},
-#     },
-#     .bricks = malloc(sizeof(Brick) * config.BRICKS_IN_ROW * ROWS_NUMBER),
-#     .world_id = world_id
-# };
-
 [game]
 bricks_in_row = 8
 
 [player]
-width = 100.0
+width = 100
 height = 15
 movement_speed = 400.0
 
