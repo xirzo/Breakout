@@ -1,0 +1,11 @@
+[game]
+bricks_in_row = 8
+
+[player]
+width = 100
+height = 15
+movement_speed = 400.0
+
+[ball]
+radius = 8.0
+min_speed_multiplier = 0.8

@@ -8,6 +8,8 @@ A classic **Breakout** game cross-platform implementation built with C in my fre
 
 > [!NOTE] 
 > In order to use `FETCH_LIBS=OFF` you must have libraries installed of your machine.
+>
+> Also if you want to run debug mode, turn it on via `cmake -B build/ -DCMAKE_BUILD_TYPE=Debug` overwise  `cmake -B build/ -DCMAKE_BUILD_TYPE=Release`
 
 ### Linux
 
@@ -25,6 +27,31 @@ cmake -DFETCH_LIBS=true -B build -A x64
 cmake --build build
 cd .\build\Debug
 .\breakout.exe
+```
+
+## Configuration
+
+Configuration is stored in **toml** file, if it is invalid or not set, default configuration is used. 
+To use custom configurtion provide it via _first CLI argument_:
+
+```sh
+./build/breakout ./example_configuration.toml
+```
+
+### Example
+
+```toml
+[game]
+bricks_in_row = 8
+
+[player]
+width = 100
+height = 15
+movement_speed = 400.0
+
+[ball]
+radius = 8.0
+min_speed_multiplier = 0.8
 ```
 
 ## Controls
