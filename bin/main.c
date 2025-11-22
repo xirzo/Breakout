@@ -1,6 +1,5 @@
 #include <raylib.h>
 #include <tomlc17.h>
-#include <iso646.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,6 +14,7 @@
 #define BRICKS_PADDING     15.f
 #define BRICKS_MARGIN      10.f
 #define BRICKS_AREA_HEIGHT 300.f
+#define BRICKS_IN_ROW 8
 
 #define WALLS_WIDTH 10.f
 
@@ -109,7 +109,7 @@ void CalculateBrickDimensions(Configuration *config) {
     config->brick_height = (available_height - vertical_padding) / ROWS_NUMBER;
 }
 
-void ClampPlayerMovement(Player *player) {
+void ClampPlayerMovement(const Player *player) {
     b2Vec2 position = b2Body_GetPosition(player->body_id);
 
     double half_width = PIXELS_TO_WORLD(player->width / 2);
@@ -124,7 +124,7 @@ void ClampPlayerMovement(Player *player) {
     }
 }
 
-void ClampBallMovement(Configuration *config) {
+void ClampBallMovement(const Configuration *config) {
     b2Vec2 velocity = b2Body_GetLinearVelocity(config->ball.body_id);
     double current_speed =
         sqrtf(velocity.x * velocity.x + velocity.y * velocity.y);
@@ -143,7 +143,7 @@ void ClampBallMovement(Configuration *config) {
     }
 }
 
-void DrawBricks(Configuration *config) {
+void DrawBricks(const Configuration *config) {
     for (int i = 0; i < config->bricks_in_row; i++) {
         for (int j = 0; j < ROWS_NUMBER; j++) {
             int      brick_index = i + j * config->bricks_in_row;
@@ -174,7 +174,7 @@ void DrawPlayer(Configuration *config) {
     );
 }
 
-void DrawBall(Configuration *config) {
+void DrawBall(const Configuration *config) {
     b2Vec2 position = b2Body_GetPosition(config->ball.body_id);
 
     double screen_x = WORLD_TO_PIXELS(position.x);
@@ -223,7 +223,7 @@ void CreateBall(Configuration *config) {
     b2CreateCircleShape(config->ball.body_id, &ball_shape_def, &ball_collider);
 }
 
-void CreateWalls(Configuration *config) {
+void CreateWalls(const Configuration *config) {
     b2BodyDef wall_body_def = b2DefaultBodyDef();
     wall_body_def.type = b2_staticBody;
 
@@ -299,7 +299,7 @@ void CreateBricks(Configuration *config) {
     }
 }
 
-void CheckBallBrickCollisions(Configuration *config) {
+void CheckBallBrickCollisions(const Configuration *config) {
     b2Vec2 ball_position = b2Body_GetPosition(config->ball.body_id);
 
     double ball_screen_x = WORLD_TO_PIXELS(ball_position.x);
@@ -341,7 +341,7 @@ void CheckBallBrickCollisions(Configuration *config) {
     }
 }
 
-void DestroyAllBricks(Configuration *config) {
+void DestroyAllBricks(const Configuration *config) {
     for (int i = 0; i < config->bricks_in_row * ROWS_NUMBER; i++) {
         if (!B2_IS_NULL(config->bricks[i].body_id)) {
             b2DestroyBody(config->bricks[i].body_id);
@@ -440,7 +440,7 @@ int main(int argc, char **argv) {
     b2WorldId world_id = b2CreateWorld(&world_def);
 
     Configuration config = {
-        .bricks_in_row = 8,
+        .bricks_in_row = BRICKS_IN_ROW,
         .rows_colors = {RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK, MAROON},
         .background_color = BLACK,
         .player = {
@@ -456,7 +456,7 @@ int main(int argc, char **argv) {
             .min_speed_multiplier = 0.8f,
             .initial_velocity = {PIXELS_TO_WORLD(150.f), PIXELS_TO_WORLD(300.f)},
         },
-        .bricks = malloc(sizeof(Brick) * config.bricks_in_row * ROWS_NUMBER),
+        .bricks = malloc(sizeof(Brick) * BRICKS_IN_ROW * ROWS_NUMBER),
         .world_id = world_id
     };
 

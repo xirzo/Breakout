@@ -29,19 +29,9 @@ else()
 endif(FETCH_LIBS)
 unset(FETCH_LIBS CACHE)
 
-add_library(tomlc17 STATIC ./external/tomlc17/src/tomlc17.c)
-target_include_directories(tomlc17 PUBLIC ./external/tomlc17/include/)
-
-add_executable(${PROJECT_NAME} main.c)
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib box2d tomlc17)
-
-# NOTE: this allows to turn of debugging in debug build
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUGGING>)
-
-
-if (NOT MSVC)
-    target_link_libraries(${PROJECT_NAME} PRIVATE m)
-endif()
+add_subdirectory(external)
+add_subdirectory(lib)
+add_subdirectory(bin)
 
 message(STATUS "Building ${PROJECT_NAME} v${PROJECT_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
